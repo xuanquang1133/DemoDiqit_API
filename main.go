@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"demodiqit_api/config"
+	"demodiqit_api/controllers"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -31,6 +32,12 @@ func main() {
 			"db_status": "connected",
 		})
 	})
+
+	// Routes
+	authRoutes := r.Group("/api/auth")
+	{
+		authRoutes.POST("/login", controllers.Login)
+	}
 
 	// 3. Chạy server
 	port := os.Getenv("PORT")
