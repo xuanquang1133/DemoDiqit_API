@@ -4,6 +4,8 @@ import (
 	"log"
 	"os"
 
+	"demodiqit_api/models"
+
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -23,4 +25,11 @@ func ConnectDatabase() {
 
 	DB = db
 	log.Println("Successfully connected to PostgreSQL via GORM")
+
+	// Auto Migrate
+	err = db.AutoMigrate(&models.User{})
+	if err != nil {
+		log.Fatal("Failed to migrate database: ", err)
+	}
+	log.Println("Database migration completed")
 }
