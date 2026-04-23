@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"os"
+	"time"
 
 	"demodiqit_api/config"
 
@@ -24,10 +25,38 @@ func main() {
 
 	r.GET("/ping", func(c *gin.Context) {
 		c.JSON(200, gin.H{
-			"message": "pong",
+			"message":   "pong",
 			"db_status": "connected",
 		})
 	})
+
+	r.GET("/api/health", func(c *gin.Context) {
+		sqlDB, err := config.DB.DB()
+		if err != nil {
+			c.JSON(500, gin.H{"status": "fail", "message": "Database disconnected"})
+			return
+		}
+
+		// Ping thực tế tới Neon để kiểm tra độ trễ
+		start := time.Now()
+		if err := sqlDB.Ping(); err != nil {
+			c.JSON(500, gin.H{"status": "fail", "message": "Database unreachable"})
+			return
+		}
+		latency := time.Since(start)
+
+		c.JSON(200, gin.H{
+			"status":  "healthy",
+			"latency": latency.String(),
+			"db":      "Neon Postgres Connected",
+		})
+	})
+
+	// Routes
+	authRoutes := r.Group("/api/auth")
+	{
+		authRoutes.POST("/login", controllers.Login)
+	}
 
 	// 3. Chạy server
 	port := os.Getenv("PORT")
