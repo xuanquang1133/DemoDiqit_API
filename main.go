@@ -1,19 +1,40 @@
 package main
 
 import (
-	"net/http"
+	"log"
+	"os"
+
+	"demodiqit_api/config"
 
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 )
 
 func main() {
-	router := gin.Default()
+	// Tải biến môi trường từ file .env
+	if err := godotenv.Load(); err != nil {
+		log.Println("Warning: Error loading .env file")
+	}
 
-	router.GET("/ping", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
+	// 1. Khởi tạo kết nối DB
+	config.ConnectDatabase()
+
+	// 2. Khởi tạo Gin Router
+	r := gin.Default()
+
+	r.GET("/ping", func(c *gin.Context) {
+		c.JSON(200, gin.H{
 			"message": "pong",
+			"db_status": "connected",
 		})
 	})
 
-	router.Run(":8080")
+	// 3. Chạy server
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+	log.Printf("Server đang chạy tại http://localhost:%s", port)
+	r.Run(":" + port)
 }
