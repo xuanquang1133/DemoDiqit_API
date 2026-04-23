@@ -19,6 +19,9 @@ func main() {
 	// 1. Khởi tạo kết nối DB
 	config.ConnectDatabase()
 
+	// Khởi tạo Admin User nếu chưa có
+	config.SeedAdmin()
+
 	// 2. Khởi tạo Gin Router
 	r := gin.Default()
 
