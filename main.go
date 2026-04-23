@@ -3,9 +3,9 @@ package main
 import (
 	"log"
 	"os"
-	"time"
 
 	"demodiqit_api/config"
+	"demodiqit_api/controllers"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -20,6 +20,9 @@ func main() {
 	// 1. Khởi tạo kết nối DB
 	config.ConnectDatabase()
 
+	// Khởi tạo Admin User nếu chưa có
+	config.SeedAdmin()
+
 	// 2. Khởi tạo Gin Router
 	r := gin.Default()
 
@@ -27,28 +30,6 @@ func main() {
 		c.JSON(200, gin.H{
 			"message":   "pong",
 			"db_status": "connected",
-		})
-	})
-
-	r.GET("/api/health", func(c *gin.Context) {
-		sqlDB, err := config.DB.DB()
-		if err != nil {
-			c.JSON(500, gin.H{"status": "fail", "message": "Database disconnected"})
-			return
-		}
-
-		// Ping thực tế tới Neon để kiểm tra độ trễ
-		start := time.Now()
-		if err := sqlDB.Ping(); err != nil {
-			c.JSON(500, gin.H{"status": "fail", "message": "Database unreachable"})
-			return
-		}
-		latency := time.Since(start)
-
-		c.JSON(200, gin.H{
-			"status":  "healthy",
-			"latency": latency.String(),
-			"db":      "Neon Postgres Connected",
 		})
 	})
 
