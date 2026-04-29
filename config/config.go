@@ -8,7 +8,8 @@ import (
 )
 
 type Config struct {
-	DatabaseURL string
+	DatabaseURL    string
+	FrontendOrigin string
 }
 
 func LoadConfig() *Config {
@@ -22,7 +23,13 @@ func LoadConfig() *Config {
 		log.Fatal("DATABASE_URL không được cấu hình")
 	}
 
+	feOrigin := os.Getenv("FE_ORIGIN")
+	if feOrigin == "" {
+		feOrigin = "http://localhost:5173"
+	}
+
 	return &Config{
-		DatabaseURL: dsn,
+		DatabaseURL:    dsn,
+		FrontendOrigin: feOrigin,
 	}
 }
