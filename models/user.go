@@ -2,14 +2,15 @@ package models
 
 import (
 	"gorm.io/gorm"
+	"github.com/lib/pq"
 )
 
-// User đại diện cho bảng 'users' trong database
+// User represents the 'users' table in the database
 type User struct {
-	gorm.Model
+	gorm.Model           // Contains ID, CreatedAt, UpdatedAt, DeletedAt
 	Username string `gorm:"unique;not null" json:"username"`
-	Password string `gorm:"not null" json:"-"` // Không trả về password
+	Password string `gorm:"not null" json:"-"` // Do not return password in JSON
 	Email    string `gorm:"unique;not null" json:"email"`
 	FullName string `json:"full_name"`
-	Role     string `gorm:"default:customer" json:"role"` // Thêm phân quyền
+	Roles    pq.StringArray `gorm:"type:text[];default:'{}'" json:"roles"` // User authorization roles (multiple)
 }
