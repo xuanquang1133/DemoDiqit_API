@@ -7,9 +7,9 @@ import (
 // User represents the 'users' table in the database
 type User struct {
 	gorm.Model           // Contains ID, CreatedAt, UpdatedAt, DeletedAt
-	Username string `gorm:"unique;not null"`
-	Email    string `gorm:"unique;not null"`
-	FullName string `gorm:"column:full_name"`
-	Age      int    
-	Active   bool   `gorm:"default:true"`
+	Username string `gorm:"unique;not null" json:"username"`
+	Password string `gorm:"not null" json:"-"` // Do not return password in JSON
+	Email    string `gorm:"unique;not null" json:"email"`
+	FullName string `json:"full_name"`
+	Role     string `gorm:"default:customer" json:"role"` // User authorization roles
 }
