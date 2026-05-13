@@ -22,4 +22,27 @@ func ConnectDB(cfg *Config) {
 	}
 
 	log.Println("✅ Connected and tables auto-migrated successfully!")
+
+	// Seed Admin User
+	var admin models.User
+	if err := DB.Where("username = ?", "admin").First(&admin).Error; err != nil {
+		// Create new admin if it doesn't exist
+		newAdmin := models.User{
+			Username: "admin",
+			Password: "123456", // BeforeCreate hook will hash this!
+			Email:    "admin@gmail.com",
+			FullName: "Administrator",
+		}
+		if err := DB.Create(&newAdmin).Error; err != nil {
+			log.Fatalf("Failed to seed admin user: %v", err)
+		}
+		log.Println("✅ Admin user (admin@gmail.com / 123456) seeded successfully!")
+	} else {
+		// Update email if the user already exists (e.g. from a previous seed)
+		if admin.Email != "admin@gmail.com" {
+			admin.Email = "admin@gmail.com"
+			DB.Save(&admin)
+			log.Println("✅ Admin user email updated to admin@gmail.com!")
+		}
+	}
 }
