@@ -15,12 +15,12 @@ type Config struct {
 func LoadConfig() *Config {
 	err := godotenv.Load()
 	if err != nil {
-		log.Println("Không tìm thấy file .env, sử dụng biến môi trường hệ thống")
+		log.Println(".env file not found, using system environment variables")
 	}
 
 	dsn := os.Getenv("DATABASE_URL")
 	if dsn == "" {
-		log.Fatal("DATABASE_URL không được cấu hình")
+		log.Fatal("DATABASE_URL is not configured")
 	}
 
 	feOrigin := os.Getenv("FE_ORIGIN")

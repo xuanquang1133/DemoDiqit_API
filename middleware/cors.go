@@ -6,7 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// CorsConfig trả về middleware CORS cho Gin
+// CorsConfig returns the CORS middleware for Gin
 func CorsConfig(cfg *config.Config) gin.HandlerFunc {
 	return cors.New(cors.Config{
 		AllowOrigins:     []string{cfg.FrontendOrigin},

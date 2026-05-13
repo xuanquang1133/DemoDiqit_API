@@ -13,13 +13,13 @@ func ConnectDB(cfg *Config) {
 	var err error
 	DB, err = gorm.Open(postgres.Open(cfg.DatabaseURL), &gorm.Config{})
 	if err != nil {
-		log.Fatalf("Không thể kết nối đến cơ sở dữ liệu: %v\n", err)
+		log.Fatalf("Unable to connect to the database: %v\n", err)
 	}
 
 	err = DB.AutoMigrate(&models.User{})
 	if err != nil {
-		log.Fatalf("Lỗi Migration: %v\n", err)
+		log.Fatalf("Migration Error: %v\n", err)
 	}
 
-	log.Println("✅ Đã kết nối và tự động tạo bảng thành công!")
+	log.Println("✅ Connected and tables auto-migrated successfully!")
 }
