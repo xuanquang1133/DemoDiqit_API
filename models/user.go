@@ -12,5 +12,5 @@ type User struct {
 	Password string `gorm:"not null" json:"-"` // Do not return password in JSON
 	Email    string `gorm:"unique;not null" json:"email"`
 	FullName string `json:"full_name"`
-	Roles    pq.StringArray `gorm:"type:text[];default:'{customer}'" json:"roles"` // User authorization roles (multiple)
+	Roles    pq.StringArray `gorm:"type:text[];default:'{}'" json:"roles"` // User authorization roles (multiple)
 }
