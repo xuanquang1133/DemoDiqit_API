@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"demodiqit_api/config"
+	"demodiqit_api/helpers/context"
 	"demodiqit_api/helpers/crypt"
 	"demodiqit_api/helpers/respond"
 	"demodiqit_api/models"
@@ -52,7 +53,7 @@ func (ac *AuthController) Login(c *gin.Context) {
 	}
 
 	// Generate JWT Token
-	token, err := crypt.GenerateJWT(user.ID, user.Username, user.Email, ac.Config.JWTSecret, ac.Config.JWTExpirationDays)
+	token, err := crypt.GenerateJWT(user.ID, user.Username, user.Email, user.Roles, ac.Config.JWTSecret, ac.Config.JWTExpirationDays)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, respond.ErrorRespond{
 			Message: "Failed to generate token",
@@ -84,4 +85,27 @@ func (ac *AuthController) Login(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, rsp)
+}
+
+// Me returns the profile of the currently authenticated user.
+func (ac *AuthController) Me(c *gin.Context) {
+	user := contextHelper.GetUserFromContext(c)
+	if user.ID == 0 {
+		c.JSON(http.StatusUnauthorized, respond.ErrorRespond{
+			Code:    "AUTH-005",
+			Message: "Unauthorized",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, respond.SuccessRespond{
+		Message: "OK",
+		Data: gin.H{
+			"user_id":   user.ID,
+			"username":  user.Username,
+			"email":     user.Email,
+			"full_name": user.FullName,
+			"roles":     user.Roles,
+		},
+	})
 }
