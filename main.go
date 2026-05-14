@@ -7,6 +7,7 @@ import (
 
 	"demodiqit_api/config"
 	"demodiqit_api/middleware"
+	"demodiqit_api/routes"
 
 	"github.com/gin-gonic/gin"
 )
@@ -40,6 +41,10 @@ func main() {
 			"time":   currentTime,
 		})
 	})
+
+	// Setup API routes
+	api := r.Group("/api/v1")
+	routes.SetupAuthRoutes(api, cfg)
 
 	// 7. Run the server
 	fmt.Println("Server is running at http://localhost:8080")

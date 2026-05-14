@@ -3,13 +3,16 @@ package config
 import (
 	"log"
 	"os"
+	"strconv"
 
 	"github.com/joho/godotenv"
 )
 
 type Config struct {
-	DatabaseURL    string
-	FrontendOrigin string
+	DatabaseURL       string
+	FrontendOrigin    string
+	JWTSecret         string
+	JWTExpirationDays int
 }
 
 func LoadConfig() *Config {
@@ -24,12 +27,16 @@ func LoadConfig() *Config {
 	}
 
 	feOrigin := os.Getenv("FE_ORIGIN")
-	if feOrigin == "" {
-		feOrigin = "http://localhost:5173"
-	}
+
+	jwtSecret := os.Getenv("JWT_SECRET")
+
+	jwtExpDaysStr := os.Getenv("JWT_EXPIRATION_DAYS")
+	jwtExpDays, _ := strconv.Atoi(jwtExpDaysStr)
 
 	return &Config{
-		DatabaseURL:    dsn,
-		FrontendOrigin: feOrigin,
+		DatabaseURL:       dsn,
+		FrontendOrigin:    feOrigin,
+		JWTSecret:         jwtSecret,
+		JWTExpirationDays: jwtExpDays,
 	}
 }
