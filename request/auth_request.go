@@ -13,3 +13,11 @@ type LoginResponse struct {
 	Roles    []string `json:"roles"`
 	Token    string   `json:"access_token"`
 }
+
+type UserInfoByTokenResponse struct {
+	ID       uint     `json:"id"`
+	Username string   `json:"username"`
+	Email    string   `json:"email"`
+	FullName string   `json:"full_name"`
+	Roles    []string `json:"roles"`
+}

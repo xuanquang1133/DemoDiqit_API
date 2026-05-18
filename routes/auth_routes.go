@@ -21,7 +21,7 @@ func SetupAuthRoutes(rg *gin.RouterGroup, cfg *config.Config) {
 	protected := rg.Group("/")
 	protected.Use(middleware.JWTAuthMiddleware(cfg))
 	{
-		protected.GET("/me", authController.Me)
+		protected.GET("/user-info-by-token", authController.UserInfoByToken)
 	}
 
 }
