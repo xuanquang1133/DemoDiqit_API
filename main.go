@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
 	"time"
 
 	"demodiqit_api/config"
@@ -47,8 +48,9 @@ func main() {
 	routes.SetupAuthRoutes(api, cfg)
 
 	// 7. Run the server
-	fmt.Println("Server is running at http://localhost:8080")
-	if err := r.Run(":8080"); err != nil {
+	port := os.Getenv("PORT")
+	fmt.Println(fmt.Sprintf("Server is running at http://localhost:%s", port))
+	if err := r.Run(fmt.Sprintf(":%s", port)); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
 	}
 }
