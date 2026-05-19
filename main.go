@@ -47,6 +47,8 @@ func main() {
 	api := r.Group("/api/v1")
 	routes.SetupAuthRoutes(api, cfg)
 	routes.SetupProductRoutes(api, cfg)
+
+	api.Use(middleware.JWTAuthMiddleware(cfg))
 	routes.SetupUserRoutes(api, cfg)
 
 	// 7. Run the server

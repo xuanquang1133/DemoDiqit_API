@@ -3,7 +3,6 @@ package config
 import (
 	"log"
 	"demodiqit_api/models"
-	"github.com/lib/pq"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -28,6 +27,7 @@ func ConnectDB(cfg *Config) {
 	log.Println("✅ Connected and tables auto-migrated successfully!")
 
 	// Seed Admin User
+	/*
 	var admin models.User
 	if err := DB.Unscoped().Where("username = ?", "admin").First(&admin).Error; err != nil {
 		// Create new admin if it doesn't exist
@@ -64,4 +64,5 @@ func ConnectDB(cfg *Config) {
 			log.Println("✅ Admin user email/roles updated!")
 		}
 	}
+	*/
 }
