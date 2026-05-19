@@ -1,5 +1,7 @@
 package controllers
 
+// ProductController handles product-related HTTP requests
+
 import (
 	"fmt"
 	"math"
