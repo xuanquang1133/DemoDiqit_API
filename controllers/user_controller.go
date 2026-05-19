@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"demodiqit_api/config"
+	contextHelper "demodiqit_api/helpers/context"
 	"demodiqit_api/helpers/respond"
 	"demodiqit_api/models"
 	"demodiqit_api/request"
@@ -144,6 +145,16 @@ func (uc *UserController) CreateUser(c *gin.Context) {
 		return
 	}
 
+	// Check if username or email exists
+	var existingCount int64
+	if err := config.DB.Model(&models.User{}).Where("username = ? OR email = ?", req.Username, req.Email).Count(&existingCount).Error; err != nil || existingCount > 0 {
+		c.JSON(http.StatusConflict, respond.ErrorRespond{
+			Message: "Username or Email already exists",
+			Code:    "USER-005",
+		})
+		return
+	}
+
 	isActive := true
 	if req.IsActive != nil {
 		isActive = *req.IsActive
@@ -210,6 +221,25 @@ func (uc *UserController) UpdateUser(c *gin.Context) {
 		return
 	}
 
+	currentUser := contextHelper.GetUserFromContext(c)
+	if user.Username == "admin" && currentUser.Username != "admin" {
+		c.JSON(http.StatusForbidden, respond.ErrorRespond{
+			Message: "You are not allowed to modify the root admin account",
+			Code:    "USER-017",
+		})
+		return
+	}
+
+	// Check if new username or email exists (excluding this user)
+	var existingCount int64
+	if err := config.DB.Model(&models.User{}).Where("(username = ? OR email = ?) AND id != ?", req.Username, req.Email, id).Count(&existingCount).Error; err != nil || existingCount > 0 {
+		c.JSON(http.StatusConflict, respond.ErrorRespond{
+			Message: "Username or Email already exists",
+			Code:    "USER-EXISTS",
+		})
+		return
+	}
+
 	user.Username = req.Username
 	user.Email = req.Email
 	user.FullName = req.FullName
@@ -258,6 +288,14 @@ func (uc *UserController) DeleteUser(c *gin.Context) {
 		return
 	}
 
+	if user.Username == "admin" {
+		c.JSON(http.StatusForbidden, respond.ErrorRespond{
+			Message: "The root admin account cannot be deleted by anyone",
+			Code:    "USER-018",
+		})
+		return
+	}
+
 	if err := config.DB.Delete(&user).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, respond.ErrorRespond{
 			Message: "Failed to delete user",
@@ -298,6 +336,14 @@ func (uc *UserController) UpdateStatus(c *gin.Context) {
 		c.JSON(http.StatusNotFound, respond.ErrorRespond{
 			Message: "User not found",
 			Code:    "USER-015",
+		})
+		return
+	}
+
+	if user.Username == "admin" {
+		c.JSON(http.StatusForbidden, respond.ErrorRespond{
+			Message: "The root admin account cannot be modified by anyone",
+			Code:    "USER-019",
 		})
 		return
 	}
