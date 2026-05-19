@@ -47,6 +47,7 @@ func main() {
 	api := r.Group("/api/v1")
 	routes.SetupAuthRoutes(api, cfg)
 	routes.SetupProductRoutes(api, cfg)
+	routes.SetupUserRoutes(api, cfg)
 
 	// 7. Run the server
 	port := os.Getenv("PORT")
