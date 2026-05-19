@@ -19,6 +19,6 @@ func SetupUserRoutes(rg *gin.RouterGroup, cfg *config.Config) {
 		users.POST("", userController.CreateUser)
 		users.PUT("/:id", userController.UpdateUser)
 		users.DELETE("/:id", userController.DeleteUser)
-		users.PATCH("/:id/status", userController.UpdateStatus)
+
 	}
 }

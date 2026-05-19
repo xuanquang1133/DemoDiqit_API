@@ -43,11 +43,7 @@ func (uc *UserController) ListUser(c *gin.Context) {
 
 	status := c.Query("status")
 	if status != "" && status != "All" {
-		if strings.ToLower(status) == "active" {
-			query = query.Where("is_active = ?", true)
-		} else if strings.ToLower(status) == "blocked" {
-			query = query.Where("is_active = ?", false)
-		}
+		query = query.Where("status = ?", status)
 	}
 
 	var total int64
@@ -82,7 +78,7 @@ func (uc *UserController) ListUser(c *gin.Context) {
 			Email:     u.Email,
 			FullName:  u.FullName,
 			Roles:     u.Roles,
-			IsActive:  u.IsActive,
+			Status:    u.Status,
 			CreatedAt: u.CreatedAt,
 		})
 	}
@@ -128,7 +124,7 @@ func (uc *UserController) UserDetail(c *gin.Context) {
 			Email:     user.Email,
 			FullName:  user.FullName,
 			Roles:     user.Roles,
-			IsActive:  user.IsActive,
+			Status:    user.Status,
 			CreatedAt: user.CreatedAt,
 		},
 	})
@@ -155,9 +151,9 @@ func (uc *UserController) CreateUser(c *gin.Context) {
 		return
 	}
 
-	isActive := true
-	if req.IsActive != nil {
-		isActive = *req.IsActive
+	status := "Active"
+	if req.Status != "" {
+		status = req.Status
 	}
 
 	user := models.User{
@@ -166,7 +162,7 @@ func (uc *UserController) CreateUser(c *gin.Context) {
 		Email:    req.Email,
 		FullName: req.FullName,
 		Roles:    req.Roles,
-		IsActive: isActive,
+		Status:   status,
 	}
 
 	if err := config.DB.Create(&user).Error; err != nil {
@@ -185,7 +181,7 @@ func (uc *UserController) CreateUser(c *gin.Context) {
 			Email:     user.Email,
 			FullName:  user.FullName,
 			Roles:     user.Roles,
-			IsActive:  user.IsActive,
+			Status:    user.Status,
 			CreatedAt: user.CreatedAt,
 		},
 	})
@@ -244,6 +240,9 @@ func (uc *UserController) UpdateUser(c *gin.Context) {
 	user.Email = req.Email
 	user.FullName = req.FullName
 	user.Roles = req.Roles
+	if req.Status != "" {
+		user.Status = req.Status
+	}
 
 	if err := config.DB.Save(&user).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, respond.ErrorRespond{
@@ -261,7 +260,7 @@ func (uc *UserController) UpdateUser(c *gin.Context) {
 			Email:     user.Email,
 			FullName:  user.FullName,
 			Roles:     user.Roles,
-			IsActive:  user.IsActive,
+			Status:    user.Status,
 			CreatedAt: user.CreatedAt,
 		},
 	})
@@ -310,66 +309,4 @@ func (uc *UserController) DeleteUser(c *gin.Context) {
 	})
 }
 
-// UpdateStatus handles PATCH /users/:id/status
-func (uc *UserController) UpdateStatus(c *gin.Context) {
-	idParam := c.Param("id")
-	id, err := strconv.Atoi(idParam)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, respond.ErrorRespond{
-			Message: "Invalid user ID",
-			Code:    "USER-013",
-		})
-		return
-	}
 
-	var req request.UpdateUserStatusRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, respond.ErrorRespond{
-			Message: "Invalid request payload",
-			Code:    "USER-014",
-		})
-		return
-	}
-
-	var user models.User
-	if err := config.DB.First(&user, id).Error; err != nil {
-		c.JSON(http.StatusNotFound, respond.ErrorRespond{
-			Message: "User not found",
-			Code:    "USER-015",
-		})
-		return
-	}
-
-	if user.Username == "admin" {
-		c.JSON(http.StatusForbidden, respond.ErrorRespond{
-			Message: "The root admin account cannot be modified by anyone",
-			Code:    "USER-019",
-		})
-		return
-	}
-
-	if req.IsActive != nil {
-		user.IsActive = *req.IsActive
-	}
-
-	if err := config.DB.Save(&user).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, respond.ErrorRespond{
-			Message: "Failed to update user status",
-			Code:    "USER-016",
-		})
-		return
-	}
-
-	c.JSON(http.StatusOK, respond.SuccessRespond{
-		Message: "User status updated successfully",
-		Data: request.UserResponse{
-			ID:        user.ID,
-			Username:  user.Username,
-			Email:     user.Email,
-			FullName:  user.FullName,
-			Roles:     user.Roles,
-			IsActive:  user.IsActive,
-			CreatedAt: user.CreatedAt,
-		},
-	})
-}
