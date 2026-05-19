@@ -36,7 +36,7 @@ func (ac *AuthController) Login(c *gin.Context) {
 	var user models.User
 	result := config.DB.Where("email = ? OR username = ?", req.Email, req.Email).First(&user)
 	if result.Error != nil {
-		c.JSON(http.StatusUnauthorized, respond.ErrorRespond{
+		c.JSON(http.StatusBadRequest, respond.ErrorRespond{
 			Message: "Invalid email/username or password",
 			Code:    "AUTH-002",
 		})
@@ -45,7 +45,7 @@ func (ac *AuthController) Login(c *gin.Context) {
 
 	// Compare password
 	if !crypt.CheckPasswordHash(req.Password, user.Password) {
-		c.JSON(http.StatusUnauthorized, respond.ErrorRespond{
+		c.JSON(http.StatusBadRequest, respond.ErrorRespond{
 			Message: "Invalid email/username or password",
 			Code:    "AUTH-002",
 		})
