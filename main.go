@@ -53,7 +53,7 @@ func main() {
 	if port == "" {
 		port = "8080"
 	}
-	fmt.Println(fmt.Sprintf("Server is running at http://localhost:%s", port))
+	fmt.Printf("Server is running at http://localhost:%s\n", port)
 	if err := r.Run(fmt.Sprintf(":%s", port)); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
 	}

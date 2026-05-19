@@ -26,37 +26,37 @@ func NewUserController(cfg *config.Config) *UserController {
 
 // ListUser handles GET /users
 func (uc *UserController) ListUser(c *gin.Context) {
+	var req request.ListUserRequest
+	if err := c.ShouldBindQuery(&req); err != nil {
+		c.JSON(http.StatusBadRequest, respond.ErrorRespond{
+			Message: "Invalid query parameters",
+			Code:    "USER-020",
+		})
+		return
+	}
+
 	var users []models.User
 	query := config.DB.Model(&models.User{})
 
-	keyword := c.Query("keyword")
-	if keyword != "" {
-		keyword = strings.ToLower(keyword)
+	if req.Keyword != "" {
+		keyword := strings.ToLower(req.Keyword)
 		query = query.Where("LOWER(username) LIKE ? OR LOWER(email) LIKE ? OR LOWER(full_name) LIKE ?", 
 			"%"+keyword+"%", "%"+keyword+"%", "%"+keyword+"%")
 	}
 
-	role := c.Query("role")
-	if role != "" && role != "All" {
-		query = query.Where("? = ANY(roles)", role)
+	if req.Role != "" && req.Role != "All" {
+		query = query.Where("? = ANY(roles)", req.Role)
 	}
 
-	status := c.Query("status")
-	if status != "" && status != "All" {
-		if strings.ToLower(status) == "active" {
-			query = query.Where("is_active = ?", true)
-		} else if strings.ToLower(status) == "blocked" {
-			query = query.Where("is_active = ?", false)
-		}
+	if req.IsActive != nil {
+		query = query.Where("is_active = ?", *req.IsActive)
 	}
 
 	var total int64
 	query.Count(&total)
 
-	pageStr := c.DefaultQuery("page", "1")
-	limitStr := c.DefaultQuery("limit", "10")
-	page, _ := strconv.Atoi(pageStr)
-	limit, _ := strconv.Atoi(limitStr)
+	page := req.Page
+	limit := req.Limit
 	if page < 1 {
 		page = 1
 	}
@@ -244,6 +244,9 @@ func (uc *UserController) UpdateUser(c *gin.Context) {
 	user.Email = req.Email
 	user.FullName = req.FullName
 	user.Roles = req.Roles
+	if req.IsActive != nil {
+		user.IsActive = *req.IsActive
+	}
 
 	if err := config.DB.Save(&user).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, respond.ErrorRespond{
@@ -296,7 +299,7 @@ func (uc *UserController) DeleteUser(c *gin.Context) {
 		return
 	}
 
-	if err := config.DB.Unscoped().Delete(&user).Error; err != nil {
+	if err := config.DB.Delete(&user).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, respond.ErrorRespond{
 			Message: "Failed to delete user",
 			Code:    "USER-012",
