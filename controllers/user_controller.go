@@ -296,7 +296,7 @@ func (uc *UserController) DeleteUser(c *gin.Context) {
 		return
 	}
 
-	if err := config.DB.Delete(&user).Error; err != nil {
+	if err := config.DB.Unscoped().Delete(&user).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, respond.ErrorRespond{
 			Message: "Failed to delete user",
 			Code:    "USER-012",
