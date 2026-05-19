@@ -37,7 +37,6 @@ func ConnectDB(cfg *Config) {
 			Email:    "admin@gmail.com",
 			FullName: "Administrator",
 			Roles:    pq.StringArray{"Admin"},
-			Status:   "Active",
 		}
 		if err := DB.Create(&newAdmin).Error; err != nil {
 			log.Printf("Failed to seed admin user: %v", err)
@@ -58,10 +57,6 @@ func ConnectDB(cfg *Config) {
 		}
 		if len(admin.Roles) == 0 {
 			admin.Roles = pq.StringArray{"Admin"}
-			updated = true
-		}
-		if admin.Status == "" {
-			admin.Status = "Active"
 			updated = true
 		}
 		if updated {

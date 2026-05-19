@@ -16,7 +16,7 @@ type User struct {
 	FullName  string         `json:"full_name"`
 	Roles     pq.StringArray `gorm:"type:text[];default:'{}'" json:"roles"` // User authorization roles (multiple)
 	UserToken string         `gorm:"type:text" json:"user_token"`           // Store the latest JWT token
-	Status    string         `gorm:"type:varchar(20);default:'Active'" json:"status"` // Active, Blocked, Pending
+	IsActive  bool           `gorm:"default:true" json:"is_active"`         // Status of the user
 }
 
 // BeforeCreate hook to hash password before saving to the database

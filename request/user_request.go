@@ -12,7 +12,7 @@ type CreateUserRequest struct {
 	Email    string         `json:"email" binding:"required,email"`
 	FullName string         `json:"full_name"`
 	Roles    pq.StringArray `json:"roles"`
-	Status   string         `json:"status"`
+	IsActive *bool          `json:"is_active"`
 }
 
 type UpdateUserRequest struct {
@@ -20,10 +20,11 @@ type UpdateUserRequest struct {
 	Email    string         `json:"email"`
 	FullName string         `json:"full_name"`
 	Roles    pq.StringArray `json:"roles"`
-	Status   string         `json:"status"`
 }
 
-
+type UpdateUserStatusRequest struct {
+	IsActive *bool `json:"is_active" binding:"required"`
+}
 
 type UserResponse struct {
 	ID        uint           `json:"id"`
@@ -31,6 +32,6 @@ type UserResponse struct {
 	Email     string         `json:"email"`
 	FullName  string         `json:"full_name"`
 	Roles     pq.StringArray `json:"roles"`
-	Status    string         `json:"status"`
+	IsActive  bool           `json:"is_active"`
 	CreatedAt time.Time      `json:"created_at"`
 }
