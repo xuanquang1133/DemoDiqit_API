@@ -25,7 +25,7 @@ func ConnectDB(cfg *Config) {
 
 	// Seed Admin User
 	var admin models.User
-	if err := DB.Where("username = ?", "admin").First(&admin).Error; err != nil {
+	if err := DB.Unscoped().Where("username = ?", "admin").First(&admin).Error; err != nil {
 		// Create new admin if it doesn't exist
 		newAdmin := models.User{
 			Username: "admin",
@@ -38,6 +38,11 @@ func ConnectDB(cfg *Config) {
 		}
 		log.Println("✅ Admin user (admin@gmail.com / 123456) seeded successfully!")
 	} else {
+		// Restore if soft deleted
+		if admin.DeletedAt.Valid {
+			DB.Unscoped().Model(&admin).Update("deleted_at", nil)
+			log.Println("✅ Admin user was soft-deleted, restored successfully!")
+		}
 		// Update email if the user already exists (e.g. from a previous seed)
 		if admin.Email != "admin@gmail.com" {
 			admin.Email = "admin@gmail.com"

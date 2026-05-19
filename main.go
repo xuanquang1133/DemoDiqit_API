@@ -51,6 +51,9 @@ func main() {
 
 	// 7. Run the server
 	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
 	fmt.Println(fmt.Sprintf("Server is running at http://localhost:%s", port))
 	if err := r.Run(fmt.Sprintf(":%s", port)); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
