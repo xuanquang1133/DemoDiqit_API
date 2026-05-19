@@ -160,18 +160,15 @@ func (pc *ProductController) CreateProduct(c *gin.Context) {
 	// Generate slug from name
 	generatedSlug := slug.GenerateSlug(req.Name)
 
-	// Auto-generate SKU if not provided
-	sku := req.SKU
-	if sku == "" {
-		sku = generateSKU(req.Name)
-	}
-
-	// Check for duplicate slug
+	// Check for duplicate slug (including soft-deleted products)
 	var existing models.Product
-	if err := config.DB.Where("slug = ?", generatedSlug).First(&existing).Error; err == nil {
-		// Slug already exists, append timestamp to make it unique
+	if err := config.DB.Unscoped().Where("slug = ?", generatedSlug).First(&existing).Error; err == nil {
+		// Slug already exists (including deleted), append timestamp to make it unique
 		generatedSlug = fmt.Sprintf("%s-%d", generatedSlug, decimal.NewFromInt(config.DB.NowFunc().Unix()).IntPart()%100000)
 	}
+
+	// SKU must be provided by FE; no auto-generate on backend
+	sku := req.SKU
 
 	// Create product
 	product := models.Product{
@@ -370,14 +367,4 @@ func toProductResponse(p models.Product) request.ProductResponse {
 		CreatedAt:   p.CreatedAt,
 		UpdatedAt:   p.UpdatedAt,
 	}
-}
-
-// generateSKU creates a unique SKU from product name
-func generateSKU(name string) string {
-	// Take first 3 characters of the slug + random number
-	generatedSlug := slug.GenerateSlug(name)
-	if len(generatedSlug) > 3 {
-		generatedSlug = generatedSlug[:3]
-	}
-	return fmt.Sprintf("SKU-%s-%d", strings.ToUpper(generatedSlug), config.DB.NowFunc().Unix()%10000)
 }
