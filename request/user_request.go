@@ -1,6 +1,10 @@
 package request
 
-import "github.com/lib/pq"
+import (
+	"time"
+
+	"github.com/lib/pq"
+)
 
 type CreateUserRequest struct {
 	Username string         `json:"username" binding:"required"`
@@ -23,10 +27,11 @@ type UpdateUserStatusRequest struct {
 }
 
 type UserResponse struct {
-	ID       uint           `json:"id"`
-	Username string         `json:"username"`
-	Email    string         `json:"email"`
-	FullName string         `json:"full_name"`
-	Roles    pq.StringArray `json:"roles"`
-	IsActive bool           `json:"is_active"`
+	ID        uint           `json:"id"`
+	Username  string         `json:"username"`
+	Email     string         `json:"email"`
+	FullName  string         `json:"full_name"`
+	Roles     pq.StringArray `json:"roles"`
+	IsActive  bool           `json:"is_active"`
+	CreatedAt time.Time      `json:"created_at"`
 }

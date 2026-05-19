@@ -35,7 +35,37 @@ func (uc *UserController) ListUser(c *gin.Context) {
 			"%"+keyword+"%", "%"+keyword+"%", "%"+keyword+"%")
 	}
 
-	if err := query.Find(&users).Error; err != nil {
+	role := c.Query("role")
+	if role != "" && role != "All" {
+		query = query.Where("? = ANY(roles)", role)
+	}
+
+	status := c.Query("status")
+	if status != "" && status != "All" {
+		if strings.ToLower(status) == "active" {
+			query = query.Where("is_active = ?", true)
+		} else if strings.ToLower(status) == "blocked" {
+			query = query.Where("is_active = ?", false)
+		}
+	}
+
+	var total int64
+	query.Count(&total)
+
+	pageStr := c.DefaultQuery("page", "1")
+	limitStr := c.DefaultQuery("limit", "10")
+	page, _ := strconv.Atoi(pageStr)
+	limit, _ := strconv.Atoi(limitStr)
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 {
+		limit = 10
+	}
+	offset := (page - 1) * limit
+	totalPages := int((total + int64(limit) - 1) / int64(limit))
+
+	if err := query.Offset(offset).Limit(limit).Order("id desc").Find(&users).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, respond.ErrorRespond{
 			Message: "Failed to fetch users",
 			Code:    "USER-001",
@@ -43,21 +73,28 @@ func (uc *UserController) ListUser(c *gin.Context) {
 		return
 	}
 
-	var userResponses []request.UserResponse
+	userResponses := make([]request.UserResponse, 0)
 	for _, u := range users {
 		userResponses = append(userResponses, request.UserResponse{
-			ID:       u.ID,
-			Username: u.Username,
-			Email:    u.Email,
-			FullName: u.FullName,
-			Roles:    u.Roles,
-			IsActive: u.IsActive,
+			ID:        u.ID,
+			Username:  u.Username,
+			Email:     u.Email,
+			FullName:  u.FullName,
+			Roles:     u.Roles,
+			IsActive:  u.IsActive,
+			CreatedAt: u.CreatedAt,
 		})
 	}
 
 	c.JSON(http.StatusOK, respond.SuccessRespond{
 		Message: "Success",
-		Data:    userResponses,
+		Data: respond.PaginatedData{
+			Items:      userResponses,
+			Total:      total,
+			Page:       page,
+			Limit:      limit,
+			TotalPages: totalPages,
+		},
 	})
 }
 
@@ -85,12 +122,13 @@ func (uc *UserController) UserDetail(c *gin.Context) {
 	c.JSON(http.StatusOK, respond.SuccessRespond{
 		Message: "Success",
 		Data: request.UserResponse{
-			ID:       user.ID,
-			Username: user.Username,
-			Email:    user.Email,
-			FullName: user.FullName,
-			Roles:    user.Roles,
-			IsActive: user.IsActive,
+			ID:        user.ID,
+			Username:  user.Username,
+			Email:     user.Email,
+			FullName:  user.FullName,
+			Roles:     user.Roles,
+			IsActive:  user.IsActive,
+			CreatedAt: user.CreatedAt,
 		},
 	})
 }
@@ -131,12 +169,13 @@ func (uc *UserController) CreateUser(c *gin.Context) {
 	c.JSON(http.StatusCreated, respond.SuccessRespond{
 		Message: "User created successfully",
 		Data: request.UserResponse{
-			ID:       user.ID,
-			Username: user.Username,
-			Email:    user.Email,
-			FullName: user.FullName,
-			Roles:    user.Roles,
-			IsActive: user.IsActive,
+			ID:        user.ID,
+			Username:  user.Username,
+			Email:     user.Email,
+			FullName:  user.FullName,
+			Roles:     user.Roles,
+			IsActive:  user.IsActive,
+			CreatedAt: user.CreatedAt,
 		},
 	})
 }
@@ -187,12 +226,13 @@ func (uc *UserController) UpdateUser(c *gin.Context) {
 	c.JSON(http.StatusOK, respond.SuccessRespond{
 		Message: "User updated successfully",
 		Data: request.UserResponse{
-			ID:       user.ID,
-			Username: user.Username,
-			Email:    user.Email,
-			FullName: user.FullName,
-			Roles:    user.Roles,
-			IsActive: user.IsActive,
+			ID:        user.ID,
+			Username:  user.Username,
+			Email:     user.Email,
+			FullName:  user.FullName,
+			Roles:     user.Roles,
+			IsActive:  user.IsActive,
+			CreatedAt: user.CreatedAt,
 		},
 	})
 }
@@ -277,12 +317,13 @@ func (uc *UserController) UpdateStatus(c *gin.Context) {
 	c.JSON(http.StatusOK, respond.SuccessRespond{
 		Message: "User status updated successfully",
 		Data: request.UserResponse{
-			ID:       user.ID,
-			Username: user.Username,
-			Email:    user.Email,
-			FullName: user.FullName,
-			Roles:    user.Roles,
-			IsActive: user.IsActive,
+			ID:        user.ID,
+			Username:  user.Username,
+			Email:     user.Email,
+			FullName:  user.FullName,
+			Roles:     user.Roles,
+			IsActive:  user.IsActive,
+			CreatedAt: user.CreatedAt,
 		},
 	})
 }
