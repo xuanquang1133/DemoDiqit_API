@@ -34,7 +34,7 @@ func (ac *AuthController) Login(c *gin.Context) {
 	}
 
 	var user models.User
-	result := config.DB.Where("email = ? OR username = ?", req.Email, req.Email).First(&user)
+	result := config.DB.Where("is_active = ? AND (email = ? OR username = ?)", true, req.Email, req.Email).First(&user)
 	if result.Error != nil {
 		c.JSON(http.StatusBadRequest, respond.ErrorRespond{
 			Message: "Invalid email/username or password",
