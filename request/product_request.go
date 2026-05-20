@@ -9,6 +9,7 @@ import (
 // CreateProductRequest is the DTO for creating a new product
 type CreateProductRequest struct {
 	Name        string `json:"name" binding:"required"`
+	Slug        string `json:"slug"`
 	SKU         string `json:"sku"`
 	Description string `json:"description"`
 	Price       string `json:"price" binding:"required"`
@@ -19,6 +20,7 @@ type CreateProductRequest struct {
 // UpdateProductRequest is the DTO for updating an existing product
 type UpdateProductRequest struct {
 	Name        string `json:"name"`
+	Slug        string `json:"slug"`
 	SKU         string `json:"sku"`
 	Description string `json:"description"`
 	Price       string `json:"price"`

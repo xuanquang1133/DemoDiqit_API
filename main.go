@@ -51,9 +51,6 @@ func main() {
 	api.Use(middleware.JWTAuthMiddleware(cfg))
 	routes.SetupUserRoutes(api, cfg)
 
-	api.Use(middleware.JWTAuthMiddleware(cfg))
-	routes.SetupUserRoutes(api, cfg)
-
 	// 7. Run the server
 	port := os.Getenv("PORT")
 	if port == "" {

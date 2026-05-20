@@ -1,17 +1,14 @@
 package controllers
 
-// ProductController handles product-related HTTP requests
-
 import (
-	"fmt"
 	"math"
 	"net/http"
 	"strconv"
 	"strings"
 
 	"demodiqit_api/config"
+	"demodiqit_api/helpers/normalize"
 	"demodiqit_api/helpers/respond"
-	"demodiqit_api/helpers/slug"
 	"demodiqit_api/models"
 	"demodiqit_api/request"
 
@@ -42,26 +39,22 @@ func (pc *ProductController) ListProducts(c *gin.Context) {
 		return
 	}
 
-	// Set default pagination values
 	if query.Page < 1 {
 		query.Page = 1
 	}
-	if query.Limit < 1 || query.Limit > 100 {
+	if query.Limit < 1 {
 		query.Limit = 10
 	}
 
 	offset := (query.Page - 1) * query.Limit
 
-	// Build the base query
 	db := config.DB.Model(&models.Product{})
 
-	// Apply keyword filter (search in name or SKU)
 	if query.Keyword != "" {
 		keyword := "%" + strings.ToLower(query.Keyword) + "%"
 		db = db.Where("LOWER(name) LIKE ? OR LOWER(sku) LIKE ?", keyword, keyword)
 	}
 
-	// Get total count before pagination
 	var total int64
 	if err := db.Count(&total).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, respond.ErrorRespond{
@@ -71,7 +64,6 @@ func (pc *ProductController) ListProducts(c *gin.Context) {
 		return
 	}
 
-	// Fetch products with pagination
 	var products []models.Product
 	if err := db.Order("created_at DESC").Offset(offset).Limit(query.Limit).Find(&products).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, respond.ErrorRespond{
@@ -81,13 +73,11 @@ func (pc *ProductController) ListProducts(c *gin.Context) {
 		return
 	}
 
-	// Convert to response DTOs
 	items := make([]request.ProductResponse, len(products))
 	for i, p := range products {
 		items[i] = toProductResponse(p)
 	}
 
-	// Calculate total pages
 	totalPages := int(math.Ceil(float64(total) / float64(query.Limit)))
 
 	c.JSON(http.StatusOK, request.ProductListResponse{
@@ -125,7 +115,7 @@ func (pc *ProductController) GetProduct(c *gin.Context) {
 }
 
 // CreateProduct handles POST /products
-// Creates a new product with auto-generated slug
+// Creates a new product. Slug/SKU are auto-cleaned by BeforeSave hook.
 func (pc *ProductController) CreateProduct(c *gin.Context) {
 	var req request.CreateProductRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -136,7 +126,6 @@ func (pc *ProductController) CreateProduct(c *gin.Context) {
 		return
 	}
 
-	// Parse and validate price
 	price, err := decimal.NewFromString(req.Price)
 	if err != nil || price.LessThanOrEqual(decimal.Zero) {
 		c.JSON(http.StatusBadRequest, respond.ErrorRespond{
@@ -146,7 +135,6 @@ func (pc *ProductController) CreateProduct(c *gin.Context) {
 		return
 	}
 
-	// Initialize sale price with zero if not provided
 	var salePrice decimal.Decimal
 	if req.SalePrice != "" {
 		salePrice, err = decimal.NewFromString(req.SalePrice)
@@ -159,24 +147,33 @@ func (pc *ProductController) CreateProduct(c *gin.Context) {
 		}
 	}
 
-	// Generate slug from name
-	generatedSlug := slug.GenerateSlug(req.Name)
-
-	// Check for duplicate slug (including soft-deleted products)
-	var existing models.Product
-	if err := config.DB.Unscoped().Where("slug = ?", generatedSlug).First(&existing).Error; err == nil {
-		// Slug already exists (including deleted), append timestamp to make it unique
-		generatedSlug = fmt.Sprintf("%s-%d", generatedSlug, decimal.NewFromInt(config.DB.NowFunc().Unix()).IntPart()%100000)
+	var product models.Product
+	// Normalize slug and SKU from user input; BeforeSave hook will also clean before DB insert
+	cleanSlug := normalize.Slug(req.Slug)
+	if cleanSlug != "" && product.ExistsBySlug(config.DB, cleanSlug) {
+		c.JSON(http.StatusBadRequest, respond.ErrorRespond{
+			Code:    "PRD-026",
+			Message: "Slug already exists. Please use a different product name or enter a custom slug.",
+		})
+		return
 	}
 
-	// SKU must be provided by FE; no auto-generate on backend
-	sku := req.SKU
+	var cleanSKU string
+	if req.SKU != "" {
+		cleanSKU = normalize.SKU(req.SKU)
+		if product.ExistsBySKU(config.DB, cleanSKU) {
+			c.JSON(http.StatusBadRequest, respond.ErrorRespond{
+				Code:    "PRD-020",
+				Message: "SKU already exists",
+			})
+			return
+		}
+	}
 
-	// Create product
-	product := models.Product{
+	product = models.Product{
 		Name:        req.Name,
-		Slug:        generatedSlug,
-		SKU:         sku,
+		Slug:        cleanSlug,
+		SKU:         cleanSKU,
 		Description: req.Description,
 		Price:       price,
 		SalePrice:   salePrice,
@@ -226,15 +223,36 @@ func (pc *ProductController) UpdateProduct(c *gin.Context) {
 		return
 	}
 
-	// Update fields if provided
 	if req.Name != "" {
 		product.Name = req.Name
-		// Regenerate slug if name changed
-		product.Slug = slug.GenerateSlug(req.Name)
 	}
+
+	// Handle slug: normalize and validate uniqueness
+	if req.Slug != "" {
+		cleanSlug := normalize.Slug(req.Slug)
+		if product.ExistsBySlug(config.DB, cleanSlug, product.ID) {
+			c.JSON(http.StatusBadRequest, respond.ErrorRespond{
+				Code:    "PRD-018",
+				Message: "Slug already exists",
+			})
+			return
+		}
+		product.Slug = cleanSlug
+	}
+
+	// Handle SKU: normalize and validate uniqueness
 	if req.SKU != "" {
-		product.SKU = req.SKU
+		cleanSKU := normalize.SKU(req.SKU)
+		if product.ExistsBySKU(config.DB, cleanSKU, product.ID) {
+			c.JSON(http.StatusBadRequest, respond.ErrorRespond{
+				Code:    "PRD-021",
+				Message: "SKU already exists",
+			})
+			return
+		}
+		product.SKU = cleanSKU
 	}
+
 	if req.Description != "" {
 		product.Description = req.Description
 	}
@@ -297,10 +315,9 @@ func (pc *ProductController) DeleteProduct(c *gin.Context) {
 		return
 	}
 
-	// Soft delete using GORM's Delete method
 	if err := config.DB.Delete(&product).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, respond.ErrorRespond{
-			Code:    "PRD-018",
+			Code:    "PRD-019",
 			Message: "Failed to delete product",
 		})
 		return
@@ -318,7 +335,7 @@ func (pc *ProductController) UpdateProductStatus(c *gin.Context) {
 	id, err := strconv.ParseUint(idParam, 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, respond.ErrorRespond{
-			Code:    "PRD-019",
+			Code:    "PRD-022",
 			Message: "Invalid product ID",
 		})
 		return
@@ -327,7 +344,7 @@ func (pc *ProductController) UpdateProductStatus(c *gin.Context) {
 	var product models.Product
 	if err := config.DB.First(&product, id).Error; err != nil {
 		c.JSON(http.StatusNotFound, respond.ErrorRespond{
-			Code:    "PRD-020",
+			Code:    "PRD-023",
 			Message: "Product not found",
 		})
 		return
@@ -336,16 +353,15 @@ func (pc *ProductController) UpdateProductStatus(c *gin.Context) {
 	var req request.UpdateProductStatusRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, respond.ErrorRespond{
-			Code:    "PRD-021",
+			Code:    "PRD-024",
 			Message: "Invalid request body",
 		})
 		return
 	}
 
-	// Update only the is_active field
 	if err := config.DB.Model(&product).Update("is_active", req.IsActive).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, respond.ErrorRespond{
-			Code:    "PRD-022",
+			Code:    "PRD-025",
 			Message: "Failed to update product status",
 		})
 		return
