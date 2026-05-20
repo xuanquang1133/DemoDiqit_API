@@ -43,6 +43,15 @@ func (ac *AuthController) Login(c *gin.Context) {
 		return
 	}
 
+	// Check if user is active
+	if !user.IsActive {
+		c.JSON(http.StatusBadRequest, respond.ErrorRespond{
+			Message: "Invalid email/username or password",
+			Code:    "AUTH-002",
+		})
+		return
+	}
+
 	// Compare password
 	if !crypt.CheckPasswordHash(req.Password, user.Password) {
 		c.JSON(http.StatusBadRequest, respond.ErrorRespond{
