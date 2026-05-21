@@ -7,13 +7,12 @@ import (
 	"strings"
 
 	"demodiqit_api/config"
-	"demodiqit_api/helpers/normalize"
 	"demodiqit_api/helpers/respond"
+	"demodiqit_api/helpers/utils"
 	"demodiqit_api/models"
 	"demodiqit_api/request"
 
 	"github.com/gin-gonic/gin"
-	"github.com/shopspring/decimal"
 )
 
 // ProductController handles product-related HTTP requests
@@ -80,7 +79,7 @@ func (pc *ProductController) ListProducts(c *gin.Context) {
 
 	totalPages := int(math.Ceil(float64(total) / float64(query.Limit)))
 
-	c.JSON(http.StatusOK, request.ProductListResponse{
+	c.JSON(http.StatusOK, respond.PaginatedData{
 		Items:      items,
 		Total:      total,
 		Page:       query.Page,
@@ -115,7 +114,7 @@ func (pc *ProductController) GetProduct(c *gin.Context) {
 }
 
 // CreateProduct handles POST /products
-// Creates a new product. Slug/SKU are auto-cleaned by BeforeSave hook.
+// Creates a new product
 func (pc *ProductController) CreateProduct(c *gin.Context) {
 	var req request.CreateProductRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -126,8 +125,7 @@ func (pc *ProductController) CreateProduct(c *gin.Context) {
 		return
 	}
 
-	price, err := decimal.NewFromString(req.Price)
-	if err != nil || price.LessThanOrEqual(decimal.Zero) {
+	if req.Price <= 0 {
 		c.JSON(http.StatusBadRequest, respond.ErrorRespond{
 			Code:    "PRD-007",
 			Message: "Invalid price value",
@@ -135,21 +133,8 @@ func (pc *ProductController) CreateProduct(c *gin.Context) {
 		return
 	}
 
-	var salePrice decimal.Decimal
-	if req.SalePrice != "" {
-		salePrice, err = decimal.NewFromString(req.SalePrice)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, respond.ErrorRespond{
-				Code:    "PRD-008",
-				Message: "Invalid sale price value",
-			})
-			return
-		}
-	}
-
 	var product models.Product
-	// Normalize slug and SKU from user input; BeforeSave hook will also clean before DB insert
-	cleanSlug := normalize.Slug(req.Slug)
+	cleanSlug := utils.Slug(req.Slug)
 	if cleanSlug != "" && product.ExistsBySlug(config.DB, cleanSlug) {
 		c.JSON(http.StatusBadRequest, respond.ErrorRespond{
 			Code:    "PRD-026",
@@ -158,16 +143,18 @@ func (pc *ProductController) CreateProduct(c *gin.Context) {
 		return
 	}
 
-	var cleanSKU string
-	if req.SKU != "" {
-		cleanSKU = normalize.SKU(req.SKU)
-		if product.ExistsBySKU(config.DB, cleanSKU) {
-			c.JSON(http.StatusBadRequest, respond.ErrorRespond{
-				Code:    "PRD-020",
-				Message: "SKU already exists",
-			})
-			return
-		}
+	cleanSKU := utils.SKU(req.SKU)
+	if cleanSKU != "" && product.ExistsBySKU(config.DB, cleanSKU) {
+		c.JSON(http.StatusBadRequest, respond.ErrorRespond{
+			Code:    "PRD-020",
+			Message: "SKU already exists",
+		})
+		return
+	}
+
+	salePrice := float64(0)
+	if req.SalePrice != nil {
+		salePrice = *req.SalePrice
 	}
 
 	product = models.Product{
@@ -175,7 +162,7 @@ func (pc *ProductController) CreateProduct(c *gin.Context) {
 		Slug:        cleanSlug,
 		SKU:         cleanSKU,
 		Description: req.Description,
-		Price:       price,
+		Price:       req.Price,
 		SalePrice:   salePrice,
 		Thumbnail:   req.Thumbnail,
 		IsActive:    true,
@@ -227,9 +214,8 @@ func (pc *ProductController) UpdateProduct(c *gin.Context) {
 		product.Name = req.Name
 	}
 
-	// Handle slug: normalize and validate uniqueness
 	if req.Slug != "" {
-		cleanSlug := normalize.Slug(req.Slug)
+		cleanSlug := utils.Slug(req.Slug)
 		if product.ExistsBySlug(config.DB, cleanSlug, product.ID) {
 			c.JSON(http.StatusBadRequest, respond.ErrorRespond{
 				Code:    "PRD-018",
@@ -240,9 +226,8 @@ func (pc *ProductController) UpdateProduct(c *gin.Context) {
 		product.Slug = cleanSlug
 	}
 
-	// Handle SKU: normalize and validate uniqueness
 	if req.SKU != "" {
-		cleanSKU := normalize.SKU(req.SKU)
+		cleanSKU := utils.SKU(req.SKU)
 		if product.ExistsBySKU(config.DB, cleanSKU, product.ID) {
 			c.JSON(http.StatusBadRequest, respond.ErrorRespond{
 				Code:    "PRD-021",
@@ -256,27 +241,11 @@ func (pc *ProductController) UpdateProduct(c *gin.Context) {
 	if req.Description != "" {
 		product.Description = req.Description
 	}
-	if req.Price != "" {
-		price, err := decimal.NewFromString(req.Price)
-		if err != nil || price.LessThanOrEqual(decimal.Zero) {
-			c.JSON(http.StatusBadRequest, respond.ErrorRespond{
-				Code:    "PRD-013",
-				Message: "Invalid price value",
-			})
-			return
-		}
-		product.Price = price
+	if req.Price > 0 {
+		product.Price = req.Price
 	}
-	if req.SalePrice != "" {
-		salePrice, err := decimal.NewFromString(req.SalePrice)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, respond.ErrorRespond{
-				Code:    "PRD-014",
-				Message: "Invalid sale price value",
-			})
-			return
-		}
-		product.SalePrice = salePrice
+	if req.SalePrice != nil && *req.SalePrice > 0 {
+		product.SalePrice = *req.SalePrice
 	}
 	if req.Thumbnail != "" {
 		product.Thumbnail = req.Thumbnail
