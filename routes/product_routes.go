@@ -8,24 +8,17 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// SetupProductRoutes registers all product-related routes
 func SetupProductRoutes(rg *gin.RouterGroup, cfg *config.Config) {
 	productController := controllers.NewProductController(cfg)
 
-	// Public routes (no authentication required)
 	products := rg.Group("/products")
+	products.Use(middleware.JWTAuthMiddleware(cfg))
 	{
 		products.GET("", productController.ListProducts)
 		products.GET("/:id", productController.GetProduct)
-	}
-
-	// Protected routes (admin only)
-	protected := products.Group("")
-	protected.Use(middleware.JWTAuthMiddleware(cfg))
-	{
-		protected.POST("", productController.CreateProduct)
-		protected.PUT("/:id", productController.UpdateProduct)
-		protected.DELETE("/:id", productController.DeleteProduct)
-		protected.PATCH("/:id/status", productController.UpdateProductStatus)
+		products.POST("", productController.CreateProduct)
+		products.PUT("/:id", productController.UpdateProduct)
+		products.DELETE("/:id", productController.DeleteProduct)
+		products.PATCH("/:id/status", productController.UpdateProductStatus)
 	}
 }
