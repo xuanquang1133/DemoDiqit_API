@@ -332,3 +332,32 @@ func (cc *CategoryController) UpdateStatus(c *gin.Context) {
 		},
 	})
 }
+
+// ListCommon handles GET /categories/list-common
+func (cc *CategoryController) ListCommon(c *gin.Context) {
+	var categories []models.Category
+
+	if err := config.DB.Model(&models.Category{}).Where("is_active = ?", true).Order("name asc").Find(&categories).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, respond.ErrorRespond{
+			Message: "Failed to fetch categories",
+			Code:    "CATEGORY-017",
+		})
+		return
+	}
+
+	categoryResponses := make([]request.CategoryResponse, 0)
+	for _, cat := range categories {
+		categoryResponses = append(categoryResponses, request.CategoryResponse{
+			ID:        cat.ID,
+			Name:      cat.Name,
+			Code:      cat.Code,
+			IsActive:  cat.IsActive,
+			CreatedAt: cat.CreatedAt,
+		})
+	}
+
+	c.JSON(http.StatusOK, respond.SuccessRespond{
+		Message: "Success",
+		Data:    categoryResponses,
+	})
+}
