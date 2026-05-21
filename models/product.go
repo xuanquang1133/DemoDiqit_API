@@ -11,8 +11,8 @@ type Product struct {
 	Slug        string  `gorm:"uniqueIndex:idx_slug,where:deleted_at IS NULL" json:"slug"`
 	SKU         string  `gorm:"uniqueIndex:idx_sku,where:deleted_at IS NULL" json:"sku"`
 	Description string  `json:"description"`
-	Price     float64 `gorm:"type:double precision" json:"price"`
-	SalePrice float64 `gorm:"type:double precision" json:"sale_price"`
+	Price       float64 `gorm:"type:double precision" json:"price"`
+	SalePrice   float64 `gorm:"type:double precision" json:"sale_price"`
 	Thumbnail   string  `json:"thumbnail"`
 	IsActive    bool    `gorm:"default:true" json:"is_active"`
 }
