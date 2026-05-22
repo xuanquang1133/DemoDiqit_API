@@ -11,9 +11,14 @@ import (
 // CorsConfig returns the CORS middleware for Gin
 func CorsConfig(cfg *config.Config) gin.HandlerFunc {
 	var feOrigins []string
-	strs := strings.Split(cfg.FrontendOrigin, ";")
-	for _, feOrigin := range strs {
-		feOrigins = append(feOrigins, feOrigin)
+	if cfg.FrontendOrigin != "" {
+		strs := strings.Split(cfg.FrontendOrigin, ";")
+		for _, feOrigin := range strs {
+			feOrigin = strings.TrimSpace(feOrigin)
+			if feOrigin != "" {
+				feOrigins = append(feOrigins, feOrigin)
+			}
+		}
 	}
 
 	return cors.New(cors.Config{
