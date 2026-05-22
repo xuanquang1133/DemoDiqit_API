@@ -40,7 +40,7 @@ func (uc *UserController) ListUser(c *gin.Context) {
 
 	if req.Keyword != "" {
 		keyword := strings.ToLower(req.Keyword)
-		query = query.Where("LOWER(username) LIKE ? OR LOWER(email) LIKE ? OR LOWER(full_name) LIKE ?", 
+		query = query.Where("LOWER(username) LIKE ? OR LOWER(email) LIKE ? OR LOWER(full_name) LIKE ?",
 			"%"+keyword+"%", "%"+keyword+"%", "%"+keyword+"%")
 	}
 
@@ -312,7 +312,6 @@ func (uc *UserController) DeleteUser(c *gin.Context) {
 		Data:    nil,
 	})
 }
-
 
 // UpdateStatus handles PATCH /users/:id/status
 func (uc *UserController) UpdateStatus(c *gin.Context) {
