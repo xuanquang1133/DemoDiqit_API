@@ -47,11 +47,22 @@ func (pc *ProductController) ListProducts(c *gin.Context) {
 
 	offset := (query.Page - 1) * query.Limit
 
-	db := config.DB.Model(&models.Product{})
+	db := config.DB.Model(&models.Product{}).Preload("Category")
 
 	if query.Keyword != "" {
 		keyword := "%" + strings.ToLower(query.Keyword) + "%"
 		db = db.Where("LOWER(name) LIKE ? OR LOWER(sku) LIKE ?", keyword, keyword)
+	}
+
+	if query.IsCategory != "" {
+		catID, err := strconv.ParseUint(query.IsCategory, 10, 32)
+		if err == nil {
+			db = db.Where("category_id = ?", uint(catID))
+		}
+	}
+
+	if query.IsActive != nil {
+		db = db.Where("is_active = ?", *query.IsActive)
 	}
 
 	var total int64
@@ -102,7 +113,7 @@ func (pc *ProductController) GetProduct(c *gin.Context) {
 	}
 
 	var product models.Product
-	if err := config.DB.First(&product, id).Error; err != nil {
+	if err := config.DB.Preload("Category").First(&product, id).Error; err != nil {
 		c.JSON(http.StatusNotFound, respond.ErrorRespond{
 			Code:    "PRD-005",
 			Message: "Product not found",
@@ -158,14 +169,15 @@ func (pc *ProductController) CreateProduct(c *gin.Context) {
 	}
 
 	product = models.Product{
-		Name:        req.Name,
-		Slug:        cleanSlug,
-		SKU:         cleanSKU,
+		CategoryID: req.CategoryID,
+		Name:       req.Name,
+		Slug:       cleanSlug,
+		SKU:        cleanSKU,
 		Description: req.Description,
-		Price:       req.Price,
-		SalePrice:   salePrice,
-		Thumbnail:   req.Thumbnail,
-		IsActive:    true,
+		Price:      req.Price,
+		SalePrice:  salePrice,
+		Thumbnail:  req.Thumbnail,
+		IsActive:   true,
 	}
 
 	if err := config.DB.Create(&product).Error; err != nil {
@@ -250,6 +262,9 @@ func (pc *ProductController) UpdateProduct(c *gin.Context) {
 	if req.Thumbnail != "" {
 		product.Thumbnail = req.Thumbnail
 	}
+
+	// CategoryID: pointer — allow unsetting (nil) or setting
+	product.CategoryID = req.CategoryID
 
 	if err := config.DB.Save(&product).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, respond.ErrorRespond{
@@ -341,8 +356,9 @@ func (pc *ProductController) UpdateProductStatus(c *gin.Context) {
 
 // toProductResponse converts a Product model to ProductResponse DTO
 func toProductResponse(p models.Product) request.ProductResponse {
-	return request.ProductResponse{
+	resp := request.ProductResponse{
 		ID:          p.ID,
+		CategoryID:  p.CategoryID,
 		Name:        p.Name,
 		Slug:        p.Slug,
 		SKU:         p.SKU,
@@ -354,4 +370,12 @@ func toProductResponse(p models.Product) request.ProductResponse {
 		CreatedAt:   p.CreatedAt,
 		UpdatedAt:   p.UpdatedAt,
 	}
+	if p.Category != nil {
+		resp.Category = &request.ProductCategoryInfo{
+			ID:   p.Category.ID,
+			Name: p.Category.Name,
+			Code: p.Category.Code,
+		}
+	}
+	return resp
 }
