@@ -19,7 +19,7 @@ func ConnectDB(cfg *Config) {
 		log.Fatalf("Unable to connect to the database: %v\n", err)
 	}
 
-	err = DB.AutoMigrate(&models.User{}, &models.Product{}, &models.Category{})
+	err = DB.AutoMigrate(&models.User{}, &models.Product{}, &models.Category{}, &models.Order{}, &models.OrderItem{})
 	if err != nil {
 		log.Fatalf("Migration Error: %v\n", err)
 	}
