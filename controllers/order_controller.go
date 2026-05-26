@@ -247,6 +247,37 @@ func (oc *OrderController) CreateOrder(c *gin.Context) {
 		return
 	}
 
+	// Collect product IDs
+	productIDs := make([]uint, len(req.Items))
+	for i, item := range req.Items {
+		productIDs[i] = item.ProductID
+	}
+
+	// Fetch all products in a single query
+	var products []models.Product
+	if err := config.DB.Where("id IN ?", productIDs).Find(&products).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, respond.ErrorRespond{
+			Code:    "ORD-015",
+			Message: "Failed to fetch products",
+		})
+		return
+	}
+
+	// Build product map for quick lookup
+	productMap := make(map[uint]models.Product)
+	for _, p := range products {
+		productMap[p.ID] = p
+	}
+
+	// Check if all products exist
+	if len(productMap) != len(req.Items) {
+		c.JSON(http.StatusBadRequest, respond.ErrorRespond{
+			Code:    "ORD-013",
+			Message: "One or more products not found",
+		})
+		return
+	}
+
 	// Generate order number
 	orderNumber := generateOrderNumber()
 
@@ -255,16 +286,7 @@ func (oc *OrderController) CreateOrder(c *gin.Context) {
 	orderItems := make([]models.OrderItem, 0, len(req.Items))
 
 	for _, item := range req.Items {
-		// Get product info
-		var product models.Product
-		if err := config.DB.First(&product, item.ProductID).Error; err != nil {
-			c.JSON(http.StatusBadRequest, respond.ErrorRespond{
-				Code:    "ORD-013",
-				Message: fmt.Sprintf("Product with ID %d not found", item.ProductID),
-			})
-			return
-		}
-
+		product := productMap[item.ProductID]
 		itemSubtotal := int64(product.Price) * int64(item.Quantity)
 		subtotal += itemSubtotal
 
