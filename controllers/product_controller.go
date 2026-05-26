@@ -163,21 +163,15 @@ func (pc *ProductController) CreateProduct(c *gin.Context) {
 		return
 	}
 
-	salePrice := float64(0)
-	if req.SalePrice != nil {
-		salePrice = *req.SalePrice
-	}
-
 	product = models.Product{
-		CategoryID: req.CategoryID,
-		Name:       req.Name,
-		Slug:       cleanSlug,
-		SKU:        cleanSKU,
+		CategoryID:  req.CategoryID,
+		Name:        req.Name,
+		Slug:        cleanSlug,
+		SKU:         cleanSKU,
 		Description: req.Description,
-		Price:      req.Price,
-		SalePrice:  salePrice,
-		Thumbnail:  req.Thumbnail,
-		IsActive:   true,
+		Price:       req.Price,
+		Thumbnail:   req.Thumbnail,
+		IsActive:    req.IsActive == nil || *req.IsActive,
 	}
 
 	if err := config.DB.Create(&product).Error; err != nil {
@@ -256,11 +250,11 @@ func (pc *ProductController) UpdateProduct(c *gin.Context) {
 	if req.Price > 0 {
 		product.Price = req.Price
 	}
-	if req.SalePrice != nil && *req.SalePrice > 0 {
-		product.SalePrice = *req.SalePrice
-	}
 	if req.Thumbnail != "" {
 		product.Thumbnail = req.Thumbnail
+	}
+	if req.IsActive != nil {
+		product.IsActive = *req.IsActive
 	}
 
 	// CategoryID: pointer — allow unsetting (nil) or setting
@@ -364,7 +358,6 @@ func toProductResponse(p models.Product) request.ProductResponse {
 		SKU:         p.SKU,
 		Description: p.Description,
 		Price:       p.Price,
-		SalePrice:   p.SalePrice,
 		Thumbnail:   p.Thumbnail,
 		IsActive:    p.IsActive,
 		CreatedAt:   p.CreatedAt,
