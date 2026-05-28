@@ -17,6 +17,12 @@ import (
 // On success, it fetches the user from DB and stores UserContext in the Gin context.
 func JWTAuthMiddleware(cfg *config.Config) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// Allow public access to GET /products endpoints (for customer frontend)
+		if c.Request.Method == "GET" && (c.FullPath() == "/api/v1/products" || strings.HasPrefix(c.FullPath(), "/api/v1/products/")) {
+			c.Next()
+			return
+		}
+
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, respond.ErrorRespond{
