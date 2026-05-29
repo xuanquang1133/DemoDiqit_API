@@ -55,14 +55,45 @@ func (pc *ProductController) ListProducts(c *gin.Context) {
 	}
 
 	if query.IsCategory != "" {
-		catID, err := strconv.ParseUint(query.IsCategory, 10, 32)
+		id, err := strconv.Atoi(query.IsCategory)
 		if err == nil {
-			db = db.Where("category_id = ?", uint(catID))
+			db = db.Where("category_id = ?", id)
+		}
+	} else if query.CategoryIDs != "" {
+		ids := strings.Split(query.CategoryIDs, ",")
+		db = db.Where("category_id IN ?", ids)
+	} else if len(query.CategoryID) > 0 {
+		db = db.Where("category_id IN ?", query.CategoryID)
+	} else {
+		// Handle array format: category_ids[]=1&category_ids[]=2
+		categoryParam := c.Query("category_ids[]")
+		if categoryParam != "" {
+			var ids []int
+			// Gin may bind to CategoryID if the form tag has "category_ids[]"
+			if len(query.CategoryID) > 0 {
+				ids = query.CategoryID
+			} else {
+				// Try to get all values manually
+				categoryValues := c.Request.URL.Query()["category_ids[]"]
+				for _, v := range categoryValues {
+					if id, err := strconv.Atoi(v); err == nil {
+						ids = append(ids, id)
+					}
+				}
+			}
+			if len(ids) > 0 {
+				db = db.Where("category_id IN ?", ids)
+			}
 		}
 	}
 
 	if query.IsActive != nil {
 		db = db.Where("is_active = ?", *query.IsActive)
+	}
+
+	// Public access: force is_active = true (hide inactive products from customers)
+	if c.Query("is_public") == "1" {
+		db = db.Where("is_active = ?", true)
 	}
 
 	var total int64
@@ -122,6 +153,61 @@ func (pc *ProductController) GetProduct(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, toProductResponse(product))
+}
+
+// GetProductBySlug handles GET /products/slug/:slug
+// Returns details of a single product by slug
+func (pc *ProductController) GetProductBySlug(c *gin.Context) {
+	slug := c.Param("slug")
+	if slug == "" {
+		c.JSON(http.StatusBadRequest, respond.ErrorRespond{
+			Code:    "PRD-028",
+			Message: "Invalid product slug",
+		})
+		return
+	}
+
+	var product models.Product
+	if err := config.DB.Preload("Category").Where("slug = ? AND is_active = ?", slug, true).First(&product).Error; err != nil {
+		c.JSON(http.StatusNotFound, respond.ErrorRespond{
+			Code:    "PRD-029",
+			Message: "Product not found",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, toProductResponse(product))
+}
+
+// GetFeaturedProducts handles GET /products/featured
+// Returns random products for home page display
+func (pc *ProductController) GetFeaturedProducts(c *gin.Context) {
+	var products []models.Product
+	if err := config.DB.Model(&models.Product{}).
+		Preload("Category").
+		Where("is_active = ?", true).
+		Order("RANDOM()").
+		Limit(10).
+		Find(&products).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, respond.ErrorRespond{
+			Code:    "PRD-027",
+			Message: "Failed to fetch featured products",
+		})
+		return
+	}
+
+	items := make([]request.ProductResponse, len(products))
+	for i, p := range products {
+		items[i] = toProductResponse(p)
+	}
+
+	c.JSON(http.StatusOK, respond.PaginatedData{
+		Items:      items,
+		Total:      int64(len(products)),
+		Page:       1,
+		Limit:      10,
+		TotalPages: 1,
+	})
 }
 
 // CreateProduct handles POST /products

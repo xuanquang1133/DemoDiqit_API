@@ -13,7 +13,7 @@ func SetupCategoryRoutes(rg *gin.RouterGroup, cfg *config.Config) {
 	categories := rg.Group("/categories")
 	{
 		categories.GET("", categoryController.ListCategory)
-		categories.GET("/list-common", categoryController.ListCommon)
+		categories.GET("/public", categoryController.ListCommon)
 		categories.GET("/:id", categoryController.CategoryDetail)
 		categories.POST("", categoryController.CreateCategory)
 		categories.PUT("/:id", categoryController.UpdateCategory)

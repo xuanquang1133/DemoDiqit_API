@@ -15,6 +15,7 @@ func SetupProductRoutes(rg *gin.RouterGroup, cfg *config.Config) {
 	products.Use(middleware.JWTAuthMiddleware(cfg))
 	{
 		products.GET("", productController.ListProducts)
+		products.GET("/featured", productController.GetFeaturedProducts)
 		products.GET("/:id", productController.GetProduct)
 		products.POST("", productController.CreateProduct)
 		products.PUT("/:id", productController.UpdateProduct)
