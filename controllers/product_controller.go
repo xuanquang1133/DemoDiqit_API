@@ -54,7 +54,12 @@ func (pc *ProductController) ListProducts(c *gin.Context) {
 		db = db.Where("LOWER(name) LIKE ? OR LOWER(sku) LIKE ?", keyword, keyword)
 	}
 
-	if query.CategoryIDs != "" {
+	if query.IsCategory != "" {
+		id, err := strconv.Atoi(query.IsCategory)
+		if err == nil {
+			db = db.Where("category_id = ?", id)
+		}
+	} else if query.CategoryIDs != "" {
 		ids := strings.Split(query.CategoryIDs, ",")
 		db = db.Where("category_id IN ?", ids)
 	} else if len(query.CategoryID) > 0 {

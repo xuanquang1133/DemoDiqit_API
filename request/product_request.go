@@ -33,12 +33,13 @@ type UpdateProductStatusRequest struct {
 
 // ProductListQuery holds the query parameters for listing products
 type ProductListQuery struct {
-	Page        int    `form:"page"`
-	Limit       int    `form:"limit"`
-	Keyword     string `form:"keyword"`
+	Page       int    `form:"page"`
+	Limit      int    `form:"limit"`
+	Keyword    string `form:"keyword"`
 	CategoryIDs string `form:"category_ids"`
-	CategoryID  []int  `form:"category_ids"`
-	IsActive    *bool  `form:"is_active"`
+	CategoryID []int  `form:"category_ids"`
+	IsCategory string `form:"is_category"`
+	IsActive   *bool  `form:"is_active"`
 }
 
 // ProductCategoryInfo holds minimal category info for product responses
