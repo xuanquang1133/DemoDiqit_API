@@ -15,6 +15,7 @@ func SetupAuthRoutes(rg *gin.RouterGroup, cfg *config.Config) {
 	auth := rg.Group("/auth")
 	{
 		auth.POST("/login", authController.Login)
+		auth.POST("/register", authController.Register)
 	}
 
 	// --- Protected routes: valid JWT required ---
@@ -22,6 +23,7 @@ func SetupAuthRoutes(rg *gin.RouterGroup, cfg *config.Config) {
 	protected.Use(middleware.JWTAuthMiddleware(cfg))
 	{
 		protected.GET("/user-info-by-token", authController.UserInfoByToken)
+		protected.PUT("/auth/change-password", authController.ChangePassword)
 	}
 
 }

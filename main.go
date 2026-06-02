@@ -48,11 +48,13 @@ func main() {
 	routes.SetupAuthRoutes(api, cfg)
 	routes.SetupPublicCategoryRoutes(api, cfg)
 	routes.SetupPublicProductRoutes(api, cfg)
+	routes.SetupGuestOrderRoutes(r, cfg)
 	api.Use(middleware.JWTAuthMiddleware(cfg))
 	routes.SetupUserRoutes(api, cfg)
 	routes.SetupProductRoutes(api, cfg)
 	routes.SetupCategoryRoutes(api, cfg)
 	routes.SetupOrderRoutes(api, cfg)
+	routes.SetupCartRoutes(api, cfg)
 
 	// 7. Run the server
 	port := os.Getenv("PORT")

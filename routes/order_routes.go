@@ -19,4 +19,13 @@ func SetupOrderRoutes(rg *gin.RouterGroup, cfg *config.Config) {
 		orders.POST("", orderController.CreateOrder)
 		orders.PATCH("/:id/status", orderController.UpdateOrderStatus)
 	}
+
+	// Customer order routes
+	myOrders := rg.Group("/my-orders")
+	myOrders.Use(middleware.JWTAuthMiddleware(cfg))
+	{
+		myOrders.GET("", controllers.MyOrders)
+		myOrders.GET("/:id", controllers.MyOrderDetail)
+		myOrders.POST("/:id/cancel", controllers.CancelMyOrder)
+	}
 }
