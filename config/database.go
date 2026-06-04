@@ -11,8 +11,12 @@ var DB *gorm.DB
 
 func ConnectDB(cfg *Config) {
 	var err error
+	dsn := cfg.DatabaseURL
+	// Append timezone so PostgreSQL (Neon cloud) operates in Vietnam local time
+	// This ensures DATE(created_at) and date comparisons use Asia/Ho_Chi_Minh (UTC+7)
+	dsn += "&TimeZone=Asia/Ho_Chi_Minh"
 	DB, err = gorm.Open(postgres.New(postgres.Config{
-		DSN:                  cfg.DatabaseURL,
+		DSN:                  dsn,
 		PreferSimpleProtocol: true, // disables implicit prepared statement usage
 	}), &gorm.Config{})
 	if err != nil {

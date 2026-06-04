@@ -55,6 +55,7 @@ func main() {
 	routes.SetupCategoryRoutes(api, cfg)
 	routes.SetupOrderRoutes(api, cfg)
 	routes.SetupCartRoutes(api, cfg)
+	routes.SetupDashboardRoutes(api, cfg)
 
 	// 7. Run the server
 	port := os.Getenv("PORT")
