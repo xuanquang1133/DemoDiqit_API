@@ -40,6 +40,9 @@ type ProductListQuery struct {
 	CategoryID  []int  `form:"category_ids"`
 	IsCategory  string `form:"is_category"`
 	IsActive    *bool  `form:"is_active"`
+	PriceMin    *float64 `form:"price_min"`
+	PriceMax    *float64 `form:"price_max"`
+	Sort        string `form:"sort"`
 }
 
 // ProductCategoryInfo holds minimal category info for product responses

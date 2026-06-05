@@ -91,9 +91,32 @@ func (pc *ProductController) ListProducts(c *gin.Context) {
 		db = db.Where("is_active = ?", *query.IsActive)
 	}
 
+	// Price range filter
+	if query.PriceMin != nil {
+		db = db.Where("price >= ?", *query.PriceMin)
+	}
+	if query.PriceMax != nil && *query.PriceMax > 0 {
+		db = db.Where("price <= ?", *query.PriceMax)
+	}
+
 	// Public access: force is_active = true (hide inactive products from customers)
 	if c.Query("is_public") == "1" {
 		db = db.Where("is_active = ?", true)
+	}
+
+	// Build dynamic ORDER BY clause
+	orderBy := "created_at DESC"
+	switch query.Sort {
+	case "price_asc":
+		orderBy = "price ASC"
+	case "price_desc":
+		orderBy = "price DESC"
+	case "name_asc":
+		orderBy = "name ASC"
+	case "name_desc":
+		orderBy = "name DESC"
+	case "newest":
+		orderBy = "created_at DESC"
 	}
 
 	var total int64
@@ -106,7 +129,7 @@ func (pc *ProductController) ListProducts(c *gin.Context) {
 	}
 
 	var products []models.Product
-	if err := db.Order("created_at DESC").Offset(offset).Limit(query.Limit).Find(&products).Error; err != nil {
+	if err := db.Order(orderBy).Offset(offset).Limit(query.Limit).Find(&products).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, respond.ErrorRespond{
 			Code:    "PRD-003",
 			Message: "Failed to fetch products",
