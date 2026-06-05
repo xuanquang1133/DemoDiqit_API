@@ -222,12 +222,31 @@ func (uc *UserController) UpdateUser(c *gin.Context) {
 	}
 
 	currentUser := contextHelper.GetUserFromContext(c)
-	if user.Username == "admin" && currentUser.Username != "admin" {
+	if (user.Username == "admin" || user.Email == "admin@gmail.com") && currentUser.Email != "admin@gmail.com" && currentUser.Username != "admin" {
 		c.JSON(http.StatusForbidden, respond.ErrorRespond{
 			Message: "You are not allowed to modify the root admin account",
 			Code:    "USER-017",
 		})
 		return
+	}
+
+	// Restrict modification of other admins to only root admin
+	isTargetAdmin := false
+	for _, r := range user.Roles {
+		if strings.ToLower(r) == "admin" {
+			isTargetAdmin = true
+			break
+		}
+	}
+	if isTargetAdmin {
+		isCurrentRootAdmin := currentUser.Email == "admin@gmail.com" || currentUser.Username == "admin"
+		if !isCurrentRootAdmin {
+			c.JSON(http.StatusForbidden, respond.ErrorRespond{
+				Message: "Only the root admin account can modify other admin accounts",
+				Code:    "USER-022",
+			})
+			return
+		}
 	}
 
 	// Check if new username or email exists (excluding this user)
@@ -291,12 +310,32 @@ func (uc *UserController) DeleteUser(c *gin.Context) {
 		return
 	}
 
-	if user.Username == "admin" {
+	if user.Username == "admin" || user.Email == "admin@gmail.com" {
 		c.JSON(http.StatusForbidden, respond.ErrorRespond{
 			Message: "The root admin account cannot be deleted by anyone",
 			Code:    "USER-018",
 		})
 		return
+	}
+
+	// Restrict deletion of other admins to only root admin
+	isTargetAdmin := false
+	for _, r := range user.Roles {
+		if strings.ToLower(r) == "admin" {
+			isTargetAdmin = true
+			break
+		}
+	}
+	if isTargetAdmin {
+		currentUser := contextHelper.GetUserFromContext(c)
+		isCurrentRootAdmin := currentUser.Email == "admin@gmail.com" || currentUser.Username == "admin"
+		if !isCurrentRootAdmin {
+			c.JSON(http.StatusForbidden, respond.ErrorRespond{
+				Message: "Only the root admin account can delete other admin accounts",
+				Code:    "USER-021",
+			})
+			return
+		}
 	}
 
 	if err := config.DB.Delete(&user).Error; err != nil {
@@ -343,12 +382,32 @@ func (uc *UserController) UpdateStatus(c *gin.Context) {
 		return
 	}
 
-	if user.Username == "admin" {
+	if user.Username == "admin" || user.Email == "admin@gmail.com" {
 		c.JSON(http.StatusForbidden, respond.ErrorRespond{
 			Message: "The root admin account cannot be modified by anyone",
 			Code:    "USER-019",
 		})
 		return
+	}
+
+	// Restrict modification of other admins' status to only root admin
+	isTargetAdmin := false
+	for _, r := range user.Roles {
+		if strings.ToLower(r) == "admin" {
+			isTargetAdmin = true
+			break
+		}
+	}
+	if isTargetAdmin {
+		currentUser := contextHelper.GetUserFromContext(c)
+		isCurrentRootAdmin := currentUser.Email == "admin@gmail.com" || currentUser.Username == "admin"
+		if !isCurrentRootAdmin {
+			c.JSON(http.StatusForbidden, respond.ErrorRespond{
+				Message: "Only the root admin account can modify status of other admin accounts",
+				Code:    "USER-023",
+			})
+			return
+		}
 	}
 
 	if req.IsActive != nil {
