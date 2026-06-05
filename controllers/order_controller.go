@@ -323,9 +323,10 @@ func (oc *OrderController) CreateOrder(c *gin.Context) {
 	}
 
 	if err := config.DB.Create(&order).Error; err != nil {
+		fmt.Printf("❌ Failed to create order: %v\n", err)
 		c.JSON(http.StatusInternalServerError, respond.ErrorRespond{
 			Code:    "ORD-014",
-			Message: "Failed to create order",
+			Message: "Failed to create order: " + err.Error(),
 		})
 		return
 	}

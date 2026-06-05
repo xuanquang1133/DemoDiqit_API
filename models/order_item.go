@@ -13,7 +13,7 @@ type OrderItem struct {
 
 	// Snapshot fields from Product at order time
 	ProductName      string `gorm:"type:varchar(255);not null" json:"product_name"`
-	ProductThumbnail string `gorm:"type:varchar(255)" json:"product_thumbnail"`
+	ProductThumbnail string `gorm:"type:text" json:"product_thumbnail"`
 	Quantity         int    `gorm:"not null" json:"quantity"`
 	Price            int64  `gorm:"not null" json:"price"`     // Price per unit (in VND)
 	Subtotal         int64  `gorm:"not null" json:"subtotal"`  // Quantity * Price
