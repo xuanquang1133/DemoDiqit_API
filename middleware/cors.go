@@ -22,7 +22,23 @@ func CorsConfig(cfg *config.Config) gin.HandlerFunc {
 	}
 
 	return cors.New(cors.Config{
-		AllowOrigins:     feOrigins,
+		AllowOriginFunc: func(origin string) bool {
+			// Allow localhost
+			if strings.HasPrefix(origin, "http://localhost:") || strings.HasPrefix(origin, "http://127.0.0.1:") {
+				return true
+			}
+			// Allow any Vercel deployment
+			if strings.HasSuffix(origin, ".vercel.app") {
+				return true
+			}
+			// Check configured origins
+			for _, feOrigin := range feOrigins {
+				if origin == feOrigin {
+					return true
+				}
+			}
+			return false
+		},
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
